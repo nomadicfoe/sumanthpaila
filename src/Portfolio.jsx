@@ -82,6 +82,7 @@ export default function Portfolio() {
   const [floaters, setFloaters] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [activeSection, setActiveSection] = useState('about');
+  const [projectImageIndices, setProjectImageIndices] = useState({});
 
   const sectionRefs = {
     about: useRef(null),
@@ -138,6 +139,23 @@ export default function Portfolio() {
       });
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedProject || !selectedProject.images) return;
+
+    const interval = setInterval(() => {
+      setProjectImageIndices((prev) => {
+        const currentIndex = prev[selectedProject.title] || 0;
+        const nextIndex = (currentIndex + 1) % selectedProject.images.length;
+        return {
+          ...prev,
+          [selectedProject.title]: nextIndex,
+        };
+      });
+    }, 4000); // Change image every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [selectedProject]);
 
   useEffect(() => {
     document.title = "Sumanth Paila | Portfolio";
@@ -297,7 +315,9 @@ export default function Portfolio() {
       QueryCase is a Python-based semantic search tool for U.S. court opinions. It ingests court case PDFs from CourtListener, extracts and embeds their content using PyMuPDF + SentenceTransformers, and stores vectors in a FAISS index for rapid retrieval.
       I also implemented OpenAI-based explanation generation to help users understand why a case was retrieved. Currently adding batch checkpointing for scalable updates and incremental retraining.
     `,
-    image: "/project-images/querycase.png",
+    images: [
+      `${process.env.PUBLIC_URL}/project-images/querycase.png`
+    ],
     link: "https://github.com/yourusername/querycase"
   },
   {
@@ -307,7 +327,7 @@ export default function Portfolio() {
       This project leveraged the Medicaid Open Data API to build a centralized data lake of utilization and reimbursement records.
       I used ARIMA models to forecast future drug costs and policy impact. An interactive Tableau dashboard visualized regional trends and guided evidence-based policy development.
     `,
-    image: "/project-images/medicaid.png",
+    images: [`${process.env.PUBLIC_URL}/project-images/SDU.png`],
     link: "https://github.com/yourusername/medicaid-forecasting"
   },
   {
@@ -317,7 +337,10 @@ export default function Portfolio() {
       Built a modular Python tool to analyze orbital paths, space object classification (LEO/MEO/GEO), and collision risks.
       Implemented interactive 3D visualizations using PyVista and Plotly. Used NetworkX to simulate proximity-based collision risks and assess orbital debris clustering.
     `,
-    image: "/project-images/spacedebris.png",
+    images: [
+      `${process.env.PUBLIC_URL}/project-images/orbit.png`,
+      `${process.env.PUBLIC_URL}/project-images/orbitviz.png`
+    ],
     link: "https://github.com/yourusername/space-debris-visualization"
   }
 ];
@@ -337,12 +360,21 @@ export default function Portfolio() {
   const experiences = [
   {
     period: "Oct 2024 – Present",
-    role: "Research Assistant II · San Diego State Research Foundation",
+    role: "Research Assistant (Ml Engineer) · San Diego State Research Foundation",
     title: "Geospatial Data & ML Pipeline Engineer",
     description:
       "• Developed a cloud-based data pipeline on AWS to process Sentinel-2 satellite imagery for agricultural and land-use monitoring.\n" +
       "• Applied preprocessing (cloud/water masking, NDVI/NDWI), documented metadata, and built LSTM models that boosted classification accuracy from 72% to 85%.\n" +
       "• Collaborated with interdisciplinary teams to deliver actionable geospatial insights with version-controlled QA/QC workflows."
+  },
+   {
+    period: "Aug 2025 – Present",
+    role: "Research Assistant (ML Engineer) · San Diego State Research Foundation",
+    title: "treet View Object Detection for Homeless Site Identification",
+    description:
+      "• Built a computer vision data pipeline using Google Street View imagery from high-density homeless areas and manually annotated datasets into four object classes for supervised object detection\n" +
+      "• Trained and evaluated multiple object detection models (YOLOv8, RT-DETR/RT-DETRv2, SSD, YOLO-NAS), iteratively improving model performance from an initial 70% accuracy while analyzing accuracy–latency trade-offs for deployment readiness.\n" +
+      "• Developed a scalable annotation-to-inference workflow and deployed an initial pre-production Streamlit application to test real-time street-level mapping using recorded video feeds, supporting responsible urban planning and outreach initiatives."
   },
   {
     period: "Jun 2023 – Jul 2023",
@@ -526,15 +558,23 @@ pipelines. I’m looking for opportunities where I can contribute to data-driven
       >
         {projects.map((project, index) => (
           <motion.div key={index} variants={item}>
-            <div className="bg-gray-800 border border-gray-700 rounded-lg shadow p-6">
-              <h3 className="text-2xl font-semibold mb-2">{project.title}</h3>
-              <p className="text-gray-300 mb-4">{project.description}</p>
-              <button
-                onClick={() => setSelectedProject(project)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-              >
-                View Project
-              </button>
+            <div className="bg-gray-800 border border-gray-700 rounded-lg shadow overflow-hidden flex flex-col h-full">
+              {project.images && project.images.length > 0 && (
+                <div 
+                  className="h-48 bg-gray-700 bg-cover bg-center"
+                  style={{ backgroundImage: `url('${project.images[0]}')` }}
+                />
+              )}
+              <div className="p-6 flex flex-col flex-grow">
+                <h3 className="text-2xl font-semibold mb-2">{project.title}</h3>
+                <p className="text-gray-300 mb-4 flex-grow">{project.description}</p>
+                <button
+                  onClick={() => setSelectedProject(project)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                >
+                  View Project
+                </button>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -571,18 +611,49 @@ pipelines. I’m looking for opportunities where I can contribute to data-driven
       {/* Project Title */}
       <h3 className="text-3xl font-bold mb-4">{selectedProject.title}</h3>
 
-      {/* Optional image */}
-      <img
-        src={selectedProject.image || "/default-project-image.jpg"}
-        alt={selectedProject.title}
-        className="w-full max-h-64 object-cover rounded-lg mb-6"
-      />
+      {/* Image Carousel */}
+      {selectedProject.images && selectedProject.images.length > 0 && (
+        <div className="relative mb-6 w-full bg-gray-700 rounded-lg overflow-hidden" style={{ paddingBottom: "56.25%" }}>
+          {selectedProject.images.map((image, idx) => (
+            <div
+              key={idx}
+              className={`absolute inset-0 bg-center bg-cover transition-opacity duration-1000 ${
+                (projectImageIndices[selectedProject.title] ?? 0) === idx
+                  ? "opacity-100"
+                  : "opacity-0"
+              }`}
+              style={{
+                backgroundImage: `url('${image}')`,
+              }}
+            />
+          ))}
+          
+          {/* Image Indicators */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {selectedProject.images.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() =>
+                  setProjectImageIndices((prev) => ({
+                    ...prev,
+                    [selectedProject.title]: idx,
+                  }))
+                }
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  (projectImageIndices[selectedProject.title] ?? 0) === idx
+                    ? "bg-indigo-400"
+                    : "bg-gray-600"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Project Description */}
       <div className="text-gray-400 space-y-4 text-sm leading-relaxed">
   {selectedProject.extendedDescription || selectedProject.description}
 </div>
-
 
     
       
