@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/sumanthpaila.github.io/static/css/main.156d326c.css",
-    "main.js": "/sumanthpaila.github.io/static/js/main.8bef2c9f.js",
+    "main.css": "/sumanthpaila.github.io/static/css/main.d959bb72.css",
+    "main.js": "/sumanthpaila.github.io/static/js/main.48450467.js",
     "index.html": "/sumanthpaila.github.io/index.html",
-    "main.156d326c.css.map": "/sumanthpaila.github.io/static/css/main.156d326c.css.map",
-    "main.8bef2c9f.js.map": "/sumanthpaila.github.io/static/js/main.8bef2c9f.js.map"
+    "main.d959bb72.css.map": "/sumanthpaila.github.io/static/css/main.d959bb72.css.map",
+    "main.48450467.js.map": "/sumanthpaila.github.io/static/js/main.48450467.js.map"
   },
   "entrypoints": [
-    "static/css/main.156d326c.css",
-    "static/js/main.8bef2c9f.js"
+    "static/css/main.d959bb72.css",
+    "static/js/main.48450467.js"
   ]
 }
