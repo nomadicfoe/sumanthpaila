@@ -12,6 +12,10 @@ const FLOATING_IMAGES = [
   process.env.PUBLIC_URL + "/floating-icons/rprogram.png"
 ];
 
+// Shown whenever a project thumbnail fails to load, so a missing file in
+// public/project-images/ is obvious instead of just showing a blank box.
+const FALLBACK_IMAGE =
+  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225' viewBox='0 0 400 225'%3E%3Crect width='400' height='225' fill='%231f2937'/%3E%3Ctext x='50%25' y='50%25' fill='%236b7280' font-family='monospace' font-size='14' text-anchor='middle' dominant-baseline='middle'%3Eimage not found%3C/text%3E%3C/svg%3E";
 
 function getRandomStartPosition() {
   const edge = Math.floor(Math.random() * 4);
@@ -75,12 +79,10 @@ function ContactForm() {
 }
 
 
-
-
-
 export default function Portfolio() {
   const [floaters, setFloaters] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedExperience, setSelectedExperience] = useState(null);
   const [activeSection, setActiveSection] = useState('about');
   const [projectImageIndices, setProjectImageIndices] = useState({});
 
@@ -93,51 +95,27 @@ export default function Portfolio() {
   };
 
   useEffect(() => {
-  const sectionIds = ["about", "skills", "experience", "projects", "contact"];
-  const observers = [];
+    const sectionIds = ["about", "skills", "experience", "projects", "contact"];
+    const observers = [];
 
-  sectionIds.forEach((id) => {
-    const section = document.getElementById(id);
-    if (!section) return;
+    sectionIds.forEach((id) => {
+      const section = document.getElementById(id);
+      if (!section) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setActiveSection(id);
-        }
-      },
-      { threshold: 0.6 } // Adjust threshold for earlier/later activation
-    );
-
-    observer.observe(section);
-    observers.push(observer);
-  });
-
-  return () => observers.forEach((obs) => obs.disconnect());
-}, []);
-
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
           if (entry.isIntersecting) {
-            setActiveSection(entry.target.id);
+            setActiveSection(id);
           }
-        });
-      },
-      { threshold: 0.5 }
-    );
+        },
+        { threshold: 0.6 }
+      );
 
-    Object.values(sectionRefs).forEach(ref => {
-      if (ref.current) observer.observe(ref.current);
+      observer.observe(section);
+      observers.push(observer);
     });
 
-    return () => {
-      Object.values(sectionRefs).forEach(ref => {
-        if (ref.current) observer.unobserve(ref.current);
-      });
-    };
+    return () => observers.forEach((obs) => obs.disconnect());
   }, []);
 
   useEffect(() => {
@@ -152,7 +130,7 @@ export default function Portfolio() {
           [selectedProject.title]: nextIndex,
         };
       });
-    }, 4000); // Change image every 4 seconds
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [selectedProject]);
@@ -307,45 +285,90 @@ export default function Portfolio() {
     );
   };
 
+  // Kept your original three, added three new ones below.
+  // NOTE: github links for the three new projects are placeholders in the
+  // form github.com/nomadicfoe/<repo-name> — swap in your real repo slugs.
+  // Same for image paths: drop matching files into public/project-images/
+  // with these exact names (case-sensitive) or the fallback box will show.
   const projects = [
-  {
-    title: "QueryCase – Legal Document Semantic Search",
-    description: "Semantic search engine for U.S. court opinions with natural language query support.",
-    extendedDescription: `
-      QueryCase is a Python-based semantic search tool for U.S. court opinions. It ingests court case PDFs from CourtListener, extracts and embeds their content using PyMuPDF + SentenceTransformers, and stores vectors in a FAISS index for rapid retrieval.
-      I also implemented OpenAI-based explanation generation to help users understand why a case was retrieved. Currently adding batch checkpointing for scalable updates and incremental retraining.
-    `,
-    images: [
-      `${process.env.PUBLIC_URL}/project-images/querycase.png`
-    ],
-    link: "https://github.com/yourusername/querycase"
-  },
-  {
-    title: "Medicaid Drug Utilization Forecasting",
-    description: "Forecasting drug costs using Medicaid data for policy planning.",
-    extendedDescription: `
-      This project leveraged the Medicaid Open Data API to build a centralized data lake of utilization and reimbursement records.
-      I used ARIMA models to forecast future drug costs and policy impact. An interactive Tableau dashboard visualized regional trends and guided evidence-based policy development.
-    `,
-    images: [`${process.env.PUBLIC_URL}/project-images/SDU.png`],
-    link: "https://github.com/yourusername/medicaid-forecasting"
-  },
-  {
-    title: "Space Debris Visualization & Collision Risk Analysis",
-    description: "3D visualization of orbital paths and collision risks using Python.",
-    extendedDescription: `
-      Built a modular Python tool to analyze orbital paths, space object classification (LEO/MEO/GEO), and collision risks.
-      Implemented interactive 3D visualizations using PyVista and Plotly. Used NetworkX to simulate proximity-based collision risks and assess orbital debris clustering.
-    `,
-    images: [
-      `${process.env.PUBLIC_URL}/project-images/orbit.png`,
-      `${process.env.PUBLIC_URL}/project-images/orbitviz.png`
-    ],
-    link: "https://github.com/yourusername/space-debris-visualization"
-  }
-];
+    {
+      title: "QueryCase – Legal Document Semantic Search",
+      description: "Semantic search engine for U.S. court opinions with natural language query support and AI-generated relevance explanations.",
+      extendedDescription: `
+        QueryCase is a Python-based semantic search tool for U.S. court opinions. It ingests court case PDFs from CourtListener, extracts and chunks their content using PyMuPDF, and generates dense embeddings with SentenceTransformers, storing them in a FAISS index for fast approximate-nearest-neighbor retrieval.
 
+        On top of retrieval, I added an OpenAI-based explanation layer that summarizes why a given case was surfaced for a query, so results are interpretable rather than a black-box ranked list. Currently extending the pipeline with batch checkpointing so the index can be incrementally updated as new opinions are ingested, instead of requiring a full rebuild.
+      `,
+      images: [
+        `${process.env.PUBLIC_URL}/project-images/querycase.png`
+      ],
+      link: "https://github.com/nomadicfoe/querycase"
+    },
+    {
+      title: "Medicaid Drug Utilization Forecasting",
+      description: "Forecasting drug costs using Medicaid data for policy planning.",
+      extendedDescription: `
+        Built a centralized data lake of Medicaid drug utilization and reimbursement records by pulling from the Medicaid Open Data API, then cleaned and standardized the data across reporting periods and states.
 
+        Used ARIMA time-series models to forecast future drug costs and flag likely policy impact areas. Results were surfaced through an interactive Tableau dashboard showing regional utilization trends, giving stakeholders a way to explore cost drivers by drug class and geography to support evidence-based policy decisions.
+      `,
+      images: [`${process.env.PUBLIC_URL}/project-images/SDU.png`],
+      link: "https://github.com/nomadicfoe/medicaid-forecasting"
+    },
+    {
+      title: "Space Debris Visualization & Collision Risk Analysis",
+      description: "3D visualization of orbital paths and collision risks using Python.",
+      extendedDescription: `
+        Built a modular Python tool that classifies tracked space objects by orbital regime (LEO/MEO/GEO) and models proximity-based collision risk between them.
+
+        Orbital paths are rendered as interactive 3D visualizations using PyVista and Plotly, letting a user rotate and inspect debris fields over time. I used NetworkX to model pairwise proximity between objects as a graph, which made it possible to simulate collision-risk clustering and identify which debris populations pose the highest compounding risk.
+      `,
+      images: [
+        `${process.env.PUBLIC_URL}/project-images/orbit.png`,
+        `${process.env.PUBLIC_URL}/project-images/orbitviz.png`
+      ],
+      link: "https://github.com/nomadicfoe/space-debris-visualization"
+    },
+    {
+      title: "KnowBase – Multi-Tenant Enterprise RAG Platform",
+      description: "Full-stack retrieval-augmented generation platform for accurate document Q&A across large, multi-tenant document sets.",
+      extendedDescription: `
+        KnowBase is a full-stack RAG platform built to let an organization ask natural-language questions over its own document set and get accurate, sourced answers back instead of generic LLM output. It's multi-tenant, so each organization's documents and queries stay isolated from every other tenant on the same deployment.
+
+        The core of the project was closing the gap between a naive RAG setup and one that's actually reliable at scale: better chunking strategy, retrieval tuning, and prompt design, evaluated against a held-out question set. That work took answer accuracy from a 33% baseline up to 93% across a corpus of 8,400+ documents.
+      `,
+      images: [
+        `${process.env.PUBLIC_URL}/project-images/knowbase.png`
+      ],
+      link: "https://github.com/nomadicfoe/knowbase"
+    },
+    {
+      title: "MTR-Lite – Map-Aware Motion Forecasting",
+      description: "Multi-modal trajectory forecasting model for autonomous driving, trained on the Waymo Open Motion Dataset.",
+      extendedDescription: `
+        MTR-Lite predicts multiple plausible future trajectories for road agents (vehicles, pedestrians, cyclists) using the Waymo Open Motion Dataset (WOMD v1.3.1). The model is map-aware — it conditions its predictions on lane and road-graph context, not just an agent's past motion, which matters a lot for realistic multi-modal forecasts at intersections and merges.
+
+        Trained and evaluated end-to-end on GCP using Vertex AI, the model achieved 1.88m minADE@6, a 64% reduction in displacement error compared to a GRU baseline — a meaningful jump in how closely the predicted trajectory set matches real future behavior.
+      `,
+      images: [
+        `${process.env.PUBLIC_URL}/project-images/mtr-lite.png`
+      ],
+      link: "https://github.com/nomadicfoe/mtr-lite"
+    },
+    {
+      title: "LocoFinder – AI Business Location Intelligence",
+      description: "AI-powered platform that recommends business locations in San Diego using demographic and points-of-interest data.",
+      extendedDescription: `
+        LocoFinder was my BDA600 capstone: a full-stack tool that helps someone scoping a new business location in San Diego reason about where to open, backed by real data instead of gut feel. The frontend is built in Next.js with a FastAPI backend.
+
+        It pulls points-of-interest and competitor density from the Google Places API, layers in Census ACS demographic data by tract, and uses GeoPandas for the underlying spatial joins and analysis. A Groq-hosted LLM turns the raw spatial and demographic output into a plain-language summary and recommendation for a given business type and neighborhood.
+      `,
+      images: [
+        `${process.env.PUBLIC_URL}/project-images/locofinder.png`
+      ],
+      link: "https://github.com/nomadicfoe/locofinder"
+    }
+  ];
 
   const container = {
     hidden: {},
@@ -358,41 +381,59 @@ export default function Portfolio() {
   };
 
   const experiences = [
-  {
-    period: "Oct 2024 – Present",
-    role: "Research Assistant (Ml Engineer) · San Diego State Research Foundation",
-    title: "Geospatial Data & ML Pipeline Engineer",
-    description:
-      "• Developed a cloud-based data pipeline on AWS to process Sentinel-2 satellite imagery for agricultural and land-use monitoring.\n" +
-      "• Applied preprocessing (cloud/water masking, NDVI/NDWI), documented metadata, and built LSTM models that boosted classification accuracy from 72% to 85%.\n" +
-      "• Collaborated with interdisciplinary teams to deliver actionable geospatial insights with version-controlled QA/QC workflows."
-  },
-   {
-    period: "Aug 2025 – Present",
-    role: "Research Assistant (ML Engineer) · San Diego State Research Foundation",
-    title: "treet View Object Detection for Homeless Site Identification",
-    description:
-      "• Built a computer vision data pipeline using Google Street View imagery from high-density homeless areas and manually annotated datasets into four object classes for supervised object detection\n" +
-      "• Trained and evaluated multiple object detection models (YOLOv8, RT-DETR/RT-DETRv2, SSD, YOLO-NAS), iteratively improving model performance from an initial 70% accuracy while analyzing accuracy–latency trade-offs for deployment readiness.\n" +
-      "• Developed a scalable annotation-to-inference workflow and deployed an initial pre-production Streamlit application to test real-time street-level mapping using recorded video feeds, supporting responsible urban planning and outreach initiatives."
-  },
-  {
-    period: "Jun 2023 – Jul 2023",
-    role: "Research & Project Intern · Bhabha Atomic Research Center (CAD)",
-    title: "Full Stack Data Tools Developer",
-    description:
-      "• Designed a full-stack analytics platform to detect defects in nuclear systems using Flask (API), React (UI), and MySQL.\n" +
-      "• Automated end-to-end ETL pipelines for defect log parsing and reduced manual handling.\n" +
-      "• Authored technical documentation and presented data-driven risk reports to stakeholders."
-  }
-];
-
-
-
-
+    {
+      period: "Oct 2024 – Present",
+      role: "Research Assistant (ML Engineer) · San Diego State Research Foundation",
+      summary: "Built cloud-based geospatial ML pipelines for agricultural monitoring, plus a real-time streaming pipeline for molecular dynamics simulation data.",
+      projects: [
+        {
+          title: "Geospatial Data & ML Pipeline Engineer",
+          description:
+            "• Developed a cloud-based data pipeline on AWS to process Sentinel-2 satellite imagery for agricultural and land-use monitoring.\n" +
+            "• Applied preprocessing (cloud/water masking, NDVI/NDWI), documented metadata, and built LSTM models that boosted classification accuracy from 72% to 85%.\n" +
+            "• Collaborated with interdisciplinary teams to deliver actionable geospatial insights with version-controlled QA/QC workflows."
+        },
+        {
+          title: "Molecular Dynamics Streaming Pipeline (MoStream)",
+          description:
+            "• Built MoStream, a real-time streaming pipeline for molecular dynamics simulation output using Apache Kafka and Apache Flink to ingest and process high-throughput trajectory data.\n" +
+            "• Integrated TensorFlow-based models into the streaming pipeline for on-the-fly analysis of molecular trajectories as data arrived, instead of batch post-processing.\n" +
+            "• Deployed and tested the pipeline on CloudLab, validating throughput and latency under realistic simulation workloads."
+        }
+      ]
+    },
+    {
+      period: "Aug 2025 – Present",
+      role: "Research Assistant (ML Engineer) · HDMA Lab",
+      summary: "Built a computer vision pipeline for street-level homeless site detection, training and comparing multiple object detection models.",
+      projects: [
+        {
+          title: "Street View Object Detection for Homeless Site Identification",
+          description:
+            "• Built a computer vision data pipeline using Google Street View imagery from high-density homeless areas and manually annotated datasets into four object classes for supervised object detection\n" +
+            "• Trained and evaluated multiple object detection models (YOLOv8, RT-DETR/RT-DETRv2, SSD, YOLO-NAS), iteratively improving model performance from an initial 70% accuracy while analyzing accuracy–latency trade-offs for deployment readiness.\n" +
+            "• Developed a scalable annotation-to-inference workflow and deployed an initial pre-production Streamlit application to test real-time street-level mapping using recorded video feeds, supporting responsible urban planning and outreach initiatives."
+        }
+      ]
+    },
+    {
+      period: "Jun 2023 – Jul 2023",
+      role: "Research & Project Intern · Bhabha Atomic Research Center (CAD)",
+      summary: "Designed a full-stack analytics platform to detect defects in nuclear systems and automated the ETL pipeline for defect logs.",
+      projects: [
+        {
+          title: "Full Stack Data Tools Developer",
+          description:
+            "• Designed a full-stack analytics platform to detect defects in nuclear systems using Flask (API), React (UI), and MySQL.\n" +
+            "• Automated end-to-end ETL pipelines for defect log parsing and reduced manual handling.\n" +
+            "• Authored technical documentation and presented data-driven risk reports to stakeholders."
+        }
+      ]
+    }
+  ];
 
   return (
-    <div className="snap-y snap-mandatory h-screen overflow-y-scroll scroll-smooth bg-gradient-to-r from-gray-900 to-black text-white font-sans">
+    <div className="snap-y snap-proximity h-screen overflow-y-scroll scroll-smooth bg-gradient-to-r from-gray-900 to-black text-white font-sans">
       <canvas id="starfield" className="fixed top-0 left-0 w-full h-full z-0"></canvas>
 
       {floaters.map(f => (
@@ -417,262 +458,304 @@ export default function Portfolio() {
       {/* Navbar */}
       <header className="fixed top-6 left-1/2 -translate-x-1/2 z-50 text-sm font-mono uppercase tracking-wider">
         <nav className="flex gap-6 px-8 py-2 border border-gray-700 backdrop-blur bg-black/60 rounded-full shadow-md">
-  {[
-    { id: "about", label: "// 01 Home" },
-    { id: "skills", label: "// 02 Skills" },
-    { id: "experience", label: "// 03 Experience" },
-    { id: "projects", label: "// 04 Projects" },
-    { id: "contact", label: "// 05 Contact" }
-  ].map((item) => (
-    <a
-      key={item.id}
-      href={`#${item.id}`}
-      className={`hover:text-white ${
-        activeSection === item.id ? "text-indigo-400" : "text-gray-400"
-      }`}
-    >
-      {item.label}
-    </a>
-  ))}
-</nav>
-
+          {[
+            { id: "about", label: "// 01 Home" },
+            { id: "skills", label: "// 02 Skills" },
+            { id: "experience", label: "// 03 Experience" },
+            { id: "projects", label: "// 04 Projects" },
+            { id: "contact", label: "// 05 Contact" }
+          ].map((item) => (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              className={`hover:text-white ${
+                activeSection === item.id ? "text-indigo-400" : "text-gray-400"
+              }`}
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
       </header>
 
-    {/* Hero Section */}
-    <section
-      id="about"
-      className="h-screen snap-start relative z-10 px-6 flex flex-col items-center justify-center text-center"
-    >
-      <div className="fixed top-6 left-6 z-50 text-xl font-bold tracking-tight text-white font-mono">
-        <span className="text-indigo-400">S.</span>P
-      </div>
-      <h1 className="text-6xl md:text-8xl font-extrabold tracking-tight text-white mb-4">
-        {"SUMANTH.PAILA".split("").map((char, i) => (
-          <span
-            key={i}
-            className="inline-block transition duration-300 hover:text-indigo-400 hover:[text-shadow:_0_0_12px_rgba(99,102,241,0.6)]"
-          >
-            {char}
-          </span>
-        ))}
-      </h1>
-      <p className="text-lg text-gray-400 tracking-wide mb-6">
-        Machine Learning Engineer & Data Analyst
-      </p>
-      <div className="flex gap-5 text-gray-400">
-        <a href="https://www.linkedin.com/in/sumanth-paila/" target="_blank" rel="noreferrer">
-          <Linkedin className="w-6 h-6 hover:text-blue-500" />
-        </a>
-        <a href="mailto:sumanthpaila1@gmail.com">
-          <Mail className="w-6 h-6 hover:text-red-400" />
-        </a>
-        <a href="https://github.com/nomadicfoe" target="_blank" rel="noreferrer">
-          <Github className="w-6 h-6 hover:text-green-400" />
-        </a>
-      </div>
-      <div className="mt-8 max-w-xl px-4 text-gray-400 text-sm md:text-base leading-relaxed text-center">
-        <p>
-          I’m a creative technologist and data-driven problem solver passionate about building intelligent tools.
-          I love working at the intersection of code, data, and design.Graduate student in Big Data Analytics with practical experience in machine learning, backend development, and automating data
-pipelines. I’m looking for opportunities where I can contribute to data-driven research and help design intelligent systems
-        </p>
-      </div>
-    </section>
-
-    {/* Skills Section */}
-    <section
-  id="skills"
-  className="h-screen snap-start px-6 py-12 flex flex-col justify-center relative z-10 border-b border-gray-800"
->
-  <div className="max-w-6xl mx-auto text-center">
-    <h2 className="text-4xl font-bold mb-10">Skills</h2>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left text-gray-300 text-sm">
-      
-      {/* Development */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow">
-        <h3 className="text-lg font-semibold text-white mb-3">Development</h3>
-        <ul className="space-y-1 list-disc list-inside">
-          <li>Python (Flask, FastAPI)</li>
-          <li>JavaScript (basic)</li>
-          <li>R</li>
-          <li>SQL (MySQL), NoSQL (MongoDB)</li>
-        </ul>
-      </div>
-
-      {/* Data Science & Machine Learning */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow">
-        <h3 className="text-lg font-semibold text-white mb-3">Data Science & ML</h3>
-        <ul className="space-y-1 list-disc list-inside">
-          <li>Pandas, NumPy, Scikit-learn, XGBoost</li>
-          <li>Deep Learning: TensorFlow, Keras, PyTorch</li>
-          <li>LLMs: GPT-4, Claude, Llama, Langchain</li>
-          <li>RAG Pipelines & Semantic Search</li>
-        </ul>
-      </div>
-
-      {/* Cloud, Tools & Visualization */}
-<div className="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow">
-  <h3 className="text-lg font-semibold text-white mb-3">Cloud, Tools & Visualization</h3>
-  <ul className="space-y-1 list-disc list-inside">
-    <li>AWS (S3, Athena)</li>
-    <li>Power BI, Tableau, Google Data Studio</li>
-    <li>Excel (VLOOKUP, PivotTables)</li>
-    <li>Git & GitHub for version control</li>
-    <li>Microsoft Suite, Internet Research</li>
-  </ul>
-</div>
-
-    </div>
-  </div>
-</section>
-
-
-    {/* Experience Section */}
-    <section id="experience" className="h-screen snap-start px-6 py-12 flex flex-col justify-center relative z-10 border-b border-gray-800">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-4xl font-bold mb-10">Experience</h2>
-        <div className="space-y-10">
-          {experiences.map((exp, idx) => (
-            <div key={idx} className="flex flex-col md:flex-row md:items-start md:gap-12">
-              <span className="text-gray-500 w-32 shrink-0 mb-2 md:mb-0 text-sm md:text-base">{exp.period}</span>
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-white">{exp.role}</h3>
-                <p className="text-sm text-gray-400 italic">{exp.title}</p>
-                <p className="text-gray-300 text-sm md:text-base">{exp.description}</p>
-              </div>
-            </div>
-          ))}
+      {/* Hero Section */}
+      <section
+        id="about"
+        className="h-screen snap-start relative z-10 px-6 flex flex-col items-center justify-center text-center"
+      >
+        <div className="fixed top-6 left-6 z-50 text-xl font-bold tracking-tight text-white font-mono">
+          <span className="text-indigo-400">S.</span>P
         </div>
-      </div>
-    </section>
-
-    {/* Projects Section */}
-    <section id="projects" className="h-screen snap-start px-6 py-12 flex flex-col justify-center relative z-10">
-      <h2 className="text-4xl font-bold mb-10 text-center">Projects</h2>
-      <motion.div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-        initial="hidden"
-        animate="visible"
-        variants={container}
-      >
-        {projects.map((project, index) => (
-          <motion.div key={index} variants={item}>
-            <div className="bg-gray-800 border border-gray-700 rounded-lg shadow overflow-hidden flex flex-col h-full">
-              {project.images && project.images.length > 0 && (
-                <div 
-                  className="h-48 bg-gray-700 bg-cover bg-center"
-                  style={{ backgroundImage: `url('${project.images[0]}')` }}
-                />
-              )}
-              <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-2xl font-semibold mb-2">{project.title}</h3>
-                <p className="text-gray-300 mb-4 flex-grow">{project.description}</p>
-                <button
-                  onClick={() => setSelectedProject(project)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                >
-                  View Project
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
-    </section>
-
-    {/* Contact Section */}
-    <section id="contact" className="h-screen snap-start flex items-center justify-center border-t border-gray-800 relative z-10 px-6">
-  <div className="max-w-xl w-full text-center">
-    <h2 className="text-4xl font-bold mb-6">Contact</h2>
-    <p className="text-gray-400 mb-8">
-      Reach out to me via this form. I’ll get back to you as soon as I can!
-    </p>
-    <p className="text-gray-400">
-          LinkedIn: <a href="https://www.linkedin.com/in/sumanth-paila/" target="_blank" rel="noreferrer" className="text-blue-400">SumanthPaila</a>
-        </p>
-
-    <ContactForm />
-  </div>
-</section>
-
-    {selectedProject && (
-  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
-    <div className="relative bg-gray-900 border border-gray-700 rounded-xl max-w-3xl w-[90vw] max-h-[90vh] overflow-y-auto p-8 shadow-lg">
-      
-      {/* Close Button */}
-      <button
-        onClick={() => setSelectedProject(null)}
-        className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl"
-      >
-        ×
-      </button>
-
-      {/* Project Title */}
-      <h3 className="text-3xl font-bold mb-4">{selectedProject.title}</h3>
-
-      {/* Image Carousel */}
-      {selectedProject.images && selectedProject.images.length > 0 && (
-        <div className="relative mb-6 w-full bg-gray-700 rounded-lg overflow-hidden" style={{ paddingBottom: "56.25%" }}>
-          {selectedProject.images.map((image, idx) => (
-            <div
-              key={idx}
-              className={`absolute inset-0 bg-center bg-cover transition-opacity duration-1000 ${
-                (projectImageIndices[selectedProject.title] ?? 0) === idx
-                  ? "opacity-100"
-                  : "opacity-0"
-              }`}
-              style={{
-                backgroundImage: `url('${image}')`,
-              }}
-            />
+        <h1 className="text-6xl md:text-8xl font-extrabold tracking-tight text-white mb-4">
+          {"SUMANTH.PAILA".split("").map((char, i) => (
+            <span
+              key={i}
+              className="inline-block transition duration-300 hover:text-indigo-400 hover:[text-shadow:_0_0_12px_rgba(99,102,241,0.6)]"
+            >
+              {char}
+            </span>
           ))}
-          
-          {/* Image Indicators */}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-            {selectedProject.images.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() =>
-                  setProjectImageIndices((prev) => ({
-                    ...prev,
-                    [selectedProject.title]: idx,
-                  }))
-                }
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  (projectImageIndices[selectedProject.title] ?? 0) === idx
-                    ? "bg-indigo-400"
-                    : "bg-gray-600"
-                }`}
-              />
+        </h1>
+        <p className="text-lg text-gray-400 tracking-wide mb-6">
+          Machine Learning Engineer & Data Analyst
+        </p>
+        <div className="flex gap-5 text-gray-400">
+          <a href="https://www.linkedin.com/in/sumanth-paila/" target="_blank" rel="noreferrer">
+            <Linkedin className="w-6 h-6 hover:text-blue-500" />
+          </a>
+          <a href="mailto:sumanthpaila1@gmail.com">
+            <Mail className="w-6 h-6 hover:text-red-400" />
+          </a>
+          <a href="https://github.com/nomadicfoe" target="_blank" rel="noreferrer">
+            <Github className="w-6 h-6 hover:text-green-400" />
+          </a>
+        </div>
+        <div className="mt-8 max-w-xl px-4 text-gray-400 text-sm md:text-base leading-relaxed text-center">
+          <p>
+            I'm Sumanth Paila, a machine learning engineer with an MS in Big Data Analytics from San Diego State University (May 2026). I build computer vision, geospatial ML, and LLM-based systems, from object detection pipelines analyzing street-level imagery to retrieval-augmented generation platforms handling thousands of documents. My work spans NSF and CARB funded research, satellite imagery analysis, and full-stack systems from data pipeline to deployment. I'm looking for ML Engineer, Data Engineer, or Computer Vision Engineer roles where I can turn messy real-world data into something that actually works.
+          </p>
+        </div>
+      </section>
+
+      {/* Skills Section */}
+      <section
+        id="skills"
+        className="h-screen snap-start px-6 py-12 flex flex-col justify-center relative z-10 border-b border-gray-800"
+      >
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-4xl font-bold mb-10">Skills</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left text-gray-300 text-sm">
+
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow">
+              <h3 className="text-lg font-semibold text-white mb-3">Development</h3>
+              <ul className="space-y-1 list-disc list-inside">
+                <li>Python (Flask, FastAPI)</li>
+                <li>JavaScript (basic)</li>
+                <li>R</li>
+                <li>SQL (MySQL), NoSQL (MongoDB)</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow">
+              <h3 className="text-lg font-semibold text-white mb-3">Data Science & ML</h3>
+              <ul className="space-y-1 list-disc list-inside">
+                <li>Pandas, NumPy, Scikit-learn, XGBoost</li>
+                <li>Deep Learning: TensorFlow, Keras, PyTorch</li>
+                <li>LLMs: GPT-4, Claude, Llama, Langchain</li>
+                <li>RAG Pipelines & Semantic Search</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 shadow">
+              <h3 className="text-lg font-semibold text-white mb-3">Cloud, Tools & Visualization</h3>
+              <ul className="space-y-1 list-disc list-inside">
+                <li>AWS (S3, Athena)</li>
+                <li>Power BI, Tableau, Google Data Studio</li>
+                <li>Excel (VLOOKUP, PivotTables)</li>
+                <li>Git & GitHub for version control</li>
+                <li>Microsoft Suite, Internet Research</li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* Experience Section */}
+      <section id="experience" className="min-h-screen snap-start px-6 py-16 flex flex-col justify-center relative z-10 border-b border-gray-800">
+        <div className="max-w-3xl mx-auto w-full">
+          <h2 className="text-4xl font-bold mb-12 text-center">Experience</h2>
+          <div className="space-y-6">
+            {experiences.map((exp, idx) => (
+              <div key={idx} className="flex items-stretch gap-3 md:gap-6">
+                <span className="hidden sm:block w-24 md:w-36 shrink-0 text-right text-xs text-gray-500 font-mono pt-6">
+                  {exp.period}
+                </span>
+                <div className="flex flex-col items-center shrink-0">
+                  <span className="w-3.5 h-3.5 rounded-full bg-indigo-500 border-4 border-gray-900 mt-6 shrink-0"></span>
+                  {idx < experiences.length - 1 && (
+                    <span className="w-px flex-1 bg-gray-700 mt-1"></span>
+                  )}
+                </div>
+                <div
+                  className="flex-1 mb-1 bg-gray-800/60 border border-gray-700 rounded-lg p-5 cursor-pointer group hover:border-indigo-500 transition-colors"
+                  onClick={() => setSelectedExperience(exp)}
+                >
+                  <span className="sm:hidden block text-xs text-gray-500 font-mono mb-1">{exp.period}</span>
+                  <h3 className="text-lg font-semibold text-white mb-1">{exp.role}</h3>
+                  <p
+                    className="text-gray-400 text-sm"
+                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                  >
+                    {exp.summary}
+                  </p>
+                  <span className="inline-block mt-2 text-xs text-indigo-400 group-hover:text-indigo-300">
+                    View details →
+                  </span>
+                </div>
+              </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Projects Section */}
+      <section id="projects" className="min-h-screen snap-start px-6 py-16 flex flex-col justify-center relative z-10">
+        <h2 className="text-4xl font-bold mb-10 text-center">Projects</h2>
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto w-full"
+          initial="hidden"
+          animate="visible"
+          variants={container}
+        >
+          {projects.map((project, index) => (
+            <motion.div key={index} variants={item} className="h-full">
+              <div className="bg-gray-800 border border-gray-700 rounded-lg shadow overflow-hidden flex flex-col h-full">
+                {/* Fixed-height thumbnail slot for every card, image or not,
+                    so card height never depends on whether the image loaded */}
+                <div className="h-48 w-full shrink-0 bg-gray-700 overflow-hidden">
+                  <img
+                    src={project.images && project.images.length > 0 ? project.images[0] : FALLBACK_IMAGE}
+                    onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
+                    alt={project.title}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="p-6 flex flex-col flex-grow">
+                  <h3
+                    className="text-xl font-semibold mb-2"
+                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: "3.2rem" }}
+                  >
+                    {project.title}
+                  </h3>
+                  <p
+                    className="text-gray-300 mb-4 flex-grow"
+                    style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                  >
+                    {project.description}
+                  </p>
+                  <button
+                    onClick={() => setSelectedProject(project)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mt-auto"
+                  >
+                    View Project
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="h-screen snap-start flex items-center justify-center border-t border-gray-800 relative z-10 px-6">
+        <div className="max-w-xl w-full text-center">
+          <h2 className="text-4xl font-bold mb-6">Contact</h2>
+          <p className="text-gray-400 mb-8">
+            Reach out to me via this form. I'll get back to you as soon as I can!
+          </p>
+          <p className="text-gray-400">
+            LinkedIn: <a href="https://www.linkedin.com/in/sumanth-paila/" target="_blank" rel="noreferrer" className="text-blue-400">SumanthPaila</a>
+          </p>
+
+          <ContactForm />
+        </div>
+      </section>
+
+      {selectedProject && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="relative bg-gray-900 border border-gray-700 rounded-xl max-w-3xl w-[90vw] max-h-[90vh] overflow-y-auto p-8 shadow-lg">
+
+            <button
+              onClick={() => setSelectedProject(null)}
+              className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl"
+            >
+              ×
+            </button>
+
+            <h3 className="text-3xl font-bold mb-4">{selectedProject.title}</h3>
+
+            {selectedProject.images && selectedProject.images.length > 0 && (
+              <div className="relative mb-6 w-full bg-gray-700 rounded-lg overflow-hidden" style={{ paddingBottom: "56.25%" }}>
+                {selectedProject.images.map((image, idx) => (
+                  <img
+                    key={idx}
+                    src={image}
+                    onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
+                    alt={`${selectedProject.title} screenshot ${idx + 1}`}
+                    className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+                      (projectImageIndices[selectedProject.title] ?? 0) === idx
+                        ? "opacity-100"
+                        : "opacity-0"
+                    }`}
+                  />
+                ))}
+
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                  {selectedProject.images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() =>
+                        setProjectImageIndices((prev) => ({
+                          ...prev,
+                          [selectedProject.title]: idx,
+                        }))
+                      }
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        (projectImageIndices[selectedProject.title] ?? 0) === idx
+                          ? "bg-indigo-400"
+                          : "bg-gray-600"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="text-gray-400 space-y-4 text-sm leading-relaxed whitespace-pre-line">
+              {selectedProject.extendedDescription || selectedProject.description}
+            </div>
+
+            <a
+              href={selectedProject.link}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block mt-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+            >
+              View on GitHub
+            </a>
           </div>
         </div>
       )}
 
-      {/* Project Description */}
-      <div className="text-gray-400 space-y-4 text-sm leading-relaxed">
-  {selectedProject.extendedDescription || selectedProject.description}
-</div>
+      {selectedExperience && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+          <div className="relative bg-gray-900 border border-gray-700 rounded-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-8 shadow-lg">
+            <button
+              onClick={() => setSelectedExperience(null)}
+              className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl"
+            >
+              ×
+            </button>
 
-    
-      
+            <span className="text-xs text-gray-500 font-mono">{selectedExperience.period}</span>
+            <h3 className="text-2xl font-bold mt-1 mb-6">{selectedExperience.role}</h3>
 
-      {/* GitHub Link */}
-      <a
-        href={selectedProject.link}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-block mt-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-      >
-        View on GitHub
-      </a>
+            <div className="space-y-6">
+              {selectedExperience.projects.map((proj, pidx) => (
+                <div key={pidx} className={pidx > 0 ? "pt-6 border-t border-gray-800" : ""}>
+                  <p className="text-sm text-indigo-400 italic mb-2">{proj.title}</p>
+                  <p className="text-gray-300 text-sm md:text-base whitespace-pre-line leading-relaxed">
+                    {proj.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
-  </div>
-)}
-
-
-    </div>   
   )
 }
-
